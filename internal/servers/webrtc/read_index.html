@@ -36,6 +36,23 @@ html, body {
 	box-sizing: border-box;
 	text-shadow: 0 0 5px black;
 }
+#loader {
+	display: none;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 60px;
+	height: 60px;
+	margin: -30px 0 0 -30px;
+	border: 6px solid rgba(255, 255, 255, 0.25);
+	border-top-color: #fff;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	pointer-events: none;
+}
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
 </style>
 <script defer src="./reader.js"></script>
 </head>
@@ -43,13 +60,19 @@ html, body {
 
 <video id="video"></video>
 <div id="message"></div>
+<div id="loader"></div>
 
 <script>
 
 const video = document.getElementById('video');
 const message = document.getElementById('message');
+const loader = document.getElementById('loader');
 let defaultControls = false;
 let reader = null;
+
+const setLoading = (on) => {
+  loader.style.display = on ? 'block' : 'none';
+};
 
 const setMessage = (str) => {
   if (str !== '') {
@@ -88,9 +111,16 @@ window.addEventListener('load', () => {
   reader = new MediaMTXWebRTCReader({
     url: new URL('whep', window.location.href) + window.location.search,
     onError: (err) => {
-      setMessage(err);
+      if (/stream not found/i.test(err)) {
+        setMessage('');
+        setLoading(true);
+      } else {
+        setLoading(false);
+        setMessage(err);
+      }
     },
     onTrack: (evt) => {
+      setLoading(false);
       setMessage('');
       video.srcObject = evt.streams[0];
     },
