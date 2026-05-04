@@ -5,48 +5,35 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
 
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=raw,value=latest-ffmpeg
-            type=sha,prefix=,format=short,suffix=-ffmpeg
-
-      - uses: docker/build-push-action@v6
+      - name: Build image to tarball
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/custom-ffmpeg.Dockerfile
           platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: mediamtx-custom:latest-ffmpeg
+          outputs: type=docker,dest=/tmp/mediamtx-image.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to EC2
+      - name: Copy image to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: /tmp/mediamtx-image.tar
+          target: /tmp/
+
+      - name: Load image and restart container
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -54,7 +41,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
+            docker load -i /tmp/mediamtx-image.tar
+            rm -f /tmp/mediamtx-image.tar
             cd /home/ubuntu/mediamtx
-            docker compose pull mediamtx
             docker compose up -d mediamtx
             docker image prune -f
