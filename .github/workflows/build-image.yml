@@ -20,7 +20,7 @@ jobs:
           file: docker/custom-ffmpeg.Dockerfile
           platforms: linux/amd64
           tags: mediamtx-custom:latest-ffmpeg
-          outputs: type=docker,dest=/tmp/mediamtx-image.tar
+          outputs: type=docker,dest=mediamtx-image.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -30,7 +30,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: /tmp/mediamtx-image.tar
+          source: mediamtx-image.tar
           target: /tmp/
 
       - name: Load image and restart container
