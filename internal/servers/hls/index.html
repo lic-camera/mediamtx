@@ -36,6 +36,23 @@ html, body {
 	box-sizing: border-box;
 	text-shadow: 0 0 5px black;
 }
+#loader {
+	display: none;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 60px;
+	height: 60px;
+	margin: -30px 0 0 -30px;
+	border: 6px solid rgba(255, 255, 255, 0.25);
+	border-top-color: #fff;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	pointer-events: none;
+}
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
 #lang-icon {
 	display: none;
 	position: absolute;
@@ -70,6 +87,7 @@ html, body {
 
 <video id="video"></video>
 <div id="message"></div>
+<div id="loader"></div>
 <div id="lang-icon"><div id="lang-list"></div></div>
 
 <script defer src="hls.min.js"></script>
@@ -80,10 +98,15 @@ const retryPause = 2000;
 
 const video = document.getElementById('video');
 const message = document.getElementById('message');
+const loader = document.getElementById('loader');
 const langIcon = document.getElementById('lang-icon');
 const langList = document.getElementById('lang-list');
 
 let defaultControls = false;
+
+const setLoading = (on) => {
+	loader.style.display = on ? 'block' : 'none';
+};
 
 const setMessage = (str) => {
 	if (str !== '') {
@@ -118,10 +141,13 @@ const loadStream = () => {
 				langList.innerHTML = '';
 
 				if (data.details === 'manifestIncompatibleCodecsError') {
+					setLoading(false);
 					setMessage('stream makes use of codecs which are not compatible with this browser or operative system');
 				} else if (data.response && data.response.code === 404) {
-					setMessage('stream not found, retrying in some seconds');
+					setMessage('');
+					setLoading(true);
 				} else {
+					setLoading(false);
 					setMessage(data.error + ', retrying in some seconds');
 				}
 
@@ -146,6 +172,7 @@ const loadStream = () => {
 				langIcon.style.display = 'block';
 			}
 
+			setLoading(false);
 			setMessage('');
 			video.play();
 		});
