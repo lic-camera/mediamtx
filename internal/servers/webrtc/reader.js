@@ -369,7 +369,7 @@ class MediaMTXWebRTCReader {
       }, this.retryPause);
 
       if (this.conf.onError !== undefined) {
-        this.conf.onError(`${err}, retrying in some seconds`);
+        this.conf.onError('接続が切断されました。\nしばらくお待ちください。');
       }
     } else if (this.state === 'getting_codecs') {
       this.state = 'failed';
